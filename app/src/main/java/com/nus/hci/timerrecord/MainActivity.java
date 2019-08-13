@@ -1,6 +1,10 @@
 package com.nus.hci.timerrecord;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -11,12 +15,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Timer;
@@ -56,7 +63,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_main);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         initializeUI();
 
@@ -191,12 +201,42 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
+
+        final Context context = this;
         btnExport.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "Data: " + data);
+                showFileNameDialog(context);
             }
         });
+    }
+
+    private void showFileNameDialog(Context context) {
+        final EditText input = new EditText(context);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(context)
+                .setTitle("File Name")
+                .setView(input)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String fileName = input.getText().toString();
+                        Log.d(TAG, "File Name: " + fileName);
+                        try {
+                            FileUtil.writeFile(data.getBytes(), fileName);
+                        } catch (IOException e) {
+                            Log.e(TAG, "Error in writing file:" + fileName, e);
+                        }
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+        builder.show();
     }
 
     private static String getElapsedSecondsWithNewLine() {
