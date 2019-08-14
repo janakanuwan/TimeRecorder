@@ -7,12 +7,16 @@ import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -45,6 +49,11 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 10;
     private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
+    private static final int COLOR_OFF = Color.GRAY;
+    private static final int COLOR_ON = Color.RED;
+    private static final int COLOR_ON_SPECIAL = Color.BLUE;
+    private static final int VIBRATION_MILLIS = 300;
+
     private static long millis = System.currentTimeMillis();
     private static boolean timerOn = false;
     private static boolean stairOn = false;
@@ -57,6 +66,8 @@ public class MainActivity extends AppCompatActivity {
     private ToggleButton btnToggleStand;
     private ToggleButton btnToggleTimer;
     private Button btnExport;
+
+    private Vibrator vibrator;
 
     private Timer timer;
 
@@ -82,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
 
+        vibrator.cancel();
+        vibrator = null;
         stopTimer();
     }
 
@@ -113,6 +126,8 @@ public class MainActivity extends AppCompatActivity {
         btnToggleTimer = findViewById(R.id.btnToggleTimer);
         btnExport = findViewById(R.id.btnExport);
 
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
         disableUI();
         configureButtons();
 
@@ -135,9 +150,36 @@ public class MainActivity extends AppCompatActivity {
         btnExport.setEnabled(true);
     }
 
+    private static void setColorOff(Button button) {
+        button.setBackgroundColor(COLOR_OFF);
+    }
+
+    private static void setColorOn(Button button) {
+        button.setBackgroundColor(COLOR_ON);
+    }
+
+    private static void setColorOnSpecial(Button button) {
+        button.setBackgroundColor(COLOR_ON_SPECIAL);
+    }
+
+    private void giveFeedback() {
+        Toast toast = Toast.makeText(this, "Time: " + getElapsedTimeString(), Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
+        toast.show();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(VIBRATION_MILLIS, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            vibrator.vibrate(VIBRATION_MILLIS);
+        }
+    }
+
     private void configureButtons() {
         if (stairOn) {
             btnToggleStair.setChecked(true);
+            setColorOn(btnToggleStair);
+        } else {
+            setColorOff(btnToggleStair);
         }
         btnToggleStair.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -145,14 +187,21 @@ public class MainActivity extends AppCompatActivity {
                 stairOn = isChecked;
                 if (isChecked) {
                     data += (STAIR_START + getElapsedSecondsWithNewLine());
+                    setColorOnSpecial(btnToggleStair);
+                    giveFeedback();
                 } else {
                     data += (STAIR_STOP + getElapsedSecondsWithNewLine());
+                    setColorOff(btnToggleStair);
+                    giveFeedback();
                 }
             }
         });
 
         if (standOn) {
             btnToggleStand.setChecked(true);
+            setColorOn(btnToggleStand);
+        } else {
+            setColorOff(btnToggleStand);
         }
         btnToggleStand.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -160,15 +209,22 @@ public class MainActivity extends AppCompatActivity {
                 standOn = isChecked;
                 if (isChecked) {
                     data += (STANDING_START + getElapsedSecondsWithNewLine());
+                    setColorOn(btnToggleStand);
+                    giveFeedback();
                 } else {
                     data += (STANDING_STOP + getElapsedSecondsWithNewLine());
+                    setColorOff(btnToggleStand);
+                    giveFeedback();
                 }
             }
         });
 
         if (timerOn) {
             btnToggleTimer.setChecked(true);
+            setColorOn(btnToggleTimer);
             startTimer(false);
+        } else {
+            setColorOff(btnToggleTimer);
         }
         btnToggleTimer.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -176,8 +232,12 @@ public class MainActivity extends AppCompatActivity {
                 timerOn = isChecked;
                 if (isChecked) {
                     startTimer(true);
+                    setColorOn(btnToggleTimer);
+                    giveFeedback();
                 } else {
                     stopTimer();
+                    setColorOff(btnToggleTimer);
+                    giveFeedback();
                 }
             }
         });
@@ -186,15 +246,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 data += (OBSTACLE + getElapsedSecondsWithNewLine());
+                giveFeedback();
             }
         });
         btnObstacle.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_UP) {
-                    btnObstacle.setBackgroundColor(Color.GRAY);
+                    setColorOff(btnObstacle);
                 } else if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    btnObstacle.setBackgroundColor(Color.BLUE);
+                    setColorOnSpecial(btnObstacle);
                 }
                 return false;
             }
@@ -270,11 +331,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void updateTime() {
-        long timeElapsed = System.currentTimeMillis() - millis;
-        final String timeString = String.format(Locale.getDefault(), "%02d:%02d:%02d",
-                TimeUnit.MILLISECONDS.toHours(timeElapsed) % 24,
-                TimeUnit.MILLISECONDS.toMinutes(timeElapsed) % 60,
-                TimeUnit.MILLISECONDS.toSeconds(timeElapsed) % 60);
+        final String timeString = getElapsedTimeString();
 
         runOnUiThread(new Runnable() {
             @Override
@@ -282,6 +339,14 @@ public class MainActivity extends AppCompatActivity {
                 txtTime.setText(timeString);
             }
         });
+    }
+
+    private String getElapsedTimeString() {
+        long timeElapsed = System.currentTimeMillis() - millis;
+        return String.format(Locale.getDefault(), "%02d:%02d:%02d",
+                TimeUnit.MILLISECONDS.toHours(timeElapsed) % 24,
+                TimeUnit.MILLISECONDS.toMinutes(timeElapsed) % 60,
+                TimeUnit.MILLISECONDS.toSeconds(timeElapsed) % 60);
     }
 
 }
