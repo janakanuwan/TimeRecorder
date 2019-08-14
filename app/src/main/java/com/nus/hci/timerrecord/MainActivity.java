@@ -220,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String fileName = input.getText().toString();
+                        String fileName = input.getText().toString() + ".csv";
                         Log.d(TAG, "File Name: " + fileName);
                         try {
                             FileUtil.writeFile(data.getBytes(), fileName);
