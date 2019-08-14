@@ -273,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showFileNameDialog(Context context) {
+    private void showFileNameDialog(final Context context) {
         final EditText input = new EditText(context);
         final AlertDialog.Builder builder = new AlertDialog.Builder(context)
                 .setTitle("File Name")
@@ -285,7 +285,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.d(TAG, "File Name: " + fileName);
                         try {
                             FileUtil.writeFile(data.getBytes(), fileName);
+                            data = "";
                         } catch (IOException e) {
+                            Toast.makeText(context, "Error in writing file: " + fileName, Toast.LENGTH_SHORT).show();
                             Log.e(TAG, "Error in writing file:" + fileName, e);
                         }
                     }
