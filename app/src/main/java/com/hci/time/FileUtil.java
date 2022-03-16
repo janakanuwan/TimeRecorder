@@ -1,4 +1,4 @@
-package com.nus.hci.timerrecord;
+package com.hci.time;
 
 import android.os.Environment;
 import android.util.Log;
@@ -42,7 +42,7 @@ public final class FileUtil {
      * @return application folder
      */
     public static File getApplicationFolder() {
-        File appFolder = new File(Environment.getExternalStorageDirectory(), APP_FOLDER);
+        File appFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), APP_FOLDER);
         if (!appFolder.exists()) {
             if (!appFolder.mkdirs()) {
                 Log.e(TAG, "[FILE] Creating application folder failed");

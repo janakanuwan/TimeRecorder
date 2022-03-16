@@ -1,4 +1,4 @@
-package com.nus.hci.timerrecord;
+package com.hci.time;
 
 import android.Manifest;
 import android.app.AlertDialog;
